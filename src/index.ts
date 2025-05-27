@@ -37,48 +37,66 @@ export default {
 		let response = await cache.match(cacheKey);
 
 		if (!response) {
-			// 移除语言代码和 docs 前缀，保留剩余路径
-			const targetPath = pathParts.slice(3).join('/');
-			console.log('🎯Target Path:', targetPath);
-			// 确保路径以 / 开头，如果为空则使用 /
-			const path = targetPath ? `/${targetPath}` : '/';
-			// 如果路径为空，则使用 ""
-			const finalPath = path === '/' ? '' : path;
-			console.log('🚨Final Path:', finalPath);
+			try {
+				// 移除语言代码和 docs 前缀，保留剩余路径
+				const targetPath = pathParts.slice(3).join('/');
+				console.log('🎯Target Path:', targetPath);
+				// 确保路径以 / 开头，如果为空则使用 /
+				const path = targetPath ? `/${targetPath}` : '/';
+				// 如果路径为空，则使用 ""
+				const finalPath = path === '/' ? '' : path;
+				console.log('🚨Final Path:', finalPath);
 
-			// 构建查询参数
-			const searchParams = new URLSearchParams(url.search);
-			searchParams.set('hl', langCode.toLowerCase());
-			const finalUrl = new URL(targetUrl + finalPath + '?' + searchParams.toString());
-			console.log('🚨Final URL:', finalUrl.toString());
+				// 构建查询参数
+				const searchParams = new URLSearchParams(url.search);
+				searchParams.set('hl', langCode.toLowerCase());
+				const finalUrl = new URL(targetUrl + finalPath + '?' + searchParams.toString());
+				console.log('🚨Final URL:', finalUrl.toString());
 
-			response = await fetch(finalUrl.toString(), {
-				headers: {
-					'User-Agent': request.headers.get('User-Agent') || '',
-					'Accept': request.headers.get('Accept') || '*/*',
-					'Accept-Language': request.headers.get('Accept-Language') || '*',
-					'Cookie': request.headers.get('Cookie') || '',
-					'Referer': 'https://ai.google.dev/',
-					'Origin': 'https://ai.google.dev',
-					'Cache-Control': 'no-cache',
-					'Pragma': 'no-cache'
-				},
-				redirect: 'manual'
-			});
+				// 添加超时控制
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
 
-			// 4. 设置缓存
-			const headers = new Headers(response.headers);
-			headers.set('Cache-Control', 'public, max-age=3600');
-			headers.set('Access-Control-Allow-Origin', '*');
-			headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-			headers.set('Access-Control-Allow-Headers', '*');
+				response = await fetch(finalUrl.toString(), {
+					headers: {
+						'User-Agent': request.headers.get('User-Agent') || '',
+						'Accept': request.headers.get('Accept') || '*/*',
+						'Accept-Language': request.headers.get('Accept-Language') || '*',
+						'Cookie': request.headers.get('Cookie') || '',
+						'Referer': 'https://ai.google.dev/',
+						'Origin': 'https://ai.google.dev',
+						'Cache-Control': 'no-cache',
+						'Pragma': 'no-cache'
+					},
+					redirect: 'manual',
+					signal: controller.signal
+				});
 
-			response = new Response(response.body, {
-				status: response.status,
-				headers
-			});
+				clearTimeout(timeoutId);
 
-			ctx.waitUntil(cache.put(cacheKey, response.clone()));
+				// 4. 设置缓存
+				const headers = new Headers(response.headers);
+				headers.set('Cache-Control', 'public, max-age=3600');
+				headers.set('Access-Control-Allow-Origin', '*');
+				headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+				headers.set('Access-Control-Allow-Headers', '*');
+
+				response = new Response(response.body, {
+					status: response.status,
+					headers
+				});
+
+				ctx.waitUntil(cache.put(cacheKey, response.clone()));
+			} catch (error) {
+				console.error('❌Error fetching target URL:', error);
+				return new Response('Failed to fetch target URL', {
+					status: 502,
+					headers: {
+						'Content-Type': 'text/plain',
+						'Access-Control-Allow-Origin': '*'
+					}
+				});
+			}
 		}
 
 		return response;
