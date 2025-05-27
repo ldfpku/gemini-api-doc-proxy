@@ -124,3 +124,11 @@ URL 结构：
     ```bash
     npm run deploy
     ```
+
+## VPN设置
+
+```cmd
+set HTTPS_PROXY=http://127.0.0.1:10808
+set HTTP_PROXY=http://127.0.0.1:10808
+npx wrangler dev
+```
