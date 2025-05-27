@@ -111,8 +111,8 @@ export default {
 							// 使用正则表达式提取标题和链接
 							const tocItems = tocHtml.match(/<a[^>]*href="([^"]*)"[^>]*>.*?<span[^>]*>([^<]*)<\/span>/gs);
 
+							console.log('📚 TOC 内容:');
 							if (tocItems) {
-								console.log('📚 TOC 内容:');
 								tocItems.forEach((item: string) => {
 									const hrefMatch = item.match(/href="([^"]*)"/);
 									const textMatch = item.match(/<span[^>]*>([^<]*)<\/span>/);
