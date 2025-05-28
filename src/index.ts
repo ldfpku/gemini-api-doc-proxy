@@ -72,73 +72,7 @@ export default {
 
 				clearTimeout(timeoutId);
 
-				// 使用 HTMLRewriter 处理响应内容
-				const rewriter = new HTMLRewriter()
-					.on('head', {
-						element(element) {
-							// 添加 viewport meta 标签，设置宽屏模式
-							element.append('<meta name="viewport" content="width=1920, initial-scale=1">', { html: true });
-							// 添加自定义样式
-							element.append(`
-								<style>
-									@media (min-width: 1024px) {
-										.devsite-toc,
-										.devsite-toc-embedded,
-										[class*="toc"] {
-											display: block !important;
-											visibility: visible !important;
-											opacity: 1 !important;
-											position: relative !important;
-											width: auto !important;
-											height: auto !important;
-											overflow: visible !important;
-										}
-										.devsite-nav-list {
-											display: block !important;
-										}
-										.devsite-nav-item {
-											display: block !important;
-										}
-									}
-								</style>
-							`, { html: true });
-						}
-					})
-					.on('devsite-toc', {
-						element(element) {
-							// 提取 TOC 内容
-							const tocHtml = element.getAttribute('innerHTML') || '';
-							// 使用正则表达式提取标题和链接
-							const tocItems = tocHtml.match(/<a[^>]*href="([^"]*)"[^>]*>.*?<span[^>]*>([^<]*)<\/span>/gs);
-
-							console.log('📚 TOC 内容:');
-							if (tocItems) {
-								tocItems.forEach((item: string) => {
-									const hrefMatch = item.match(/href="([^"]*)"/);
-									const textMatch = item.match(/<span[^>]*>([^<]*)<\/span>/);
-									if (hrefMatch && textMatch) {
-										console.log(`🔗 ${textMatch[1]}: ${hrefMatch[1]}`);
-									}
-								});
-							}
-						}
-					})
-					.on('body', {
-						element(element) {
-							// 移除可能影响 TOC 显示的样式
-							element.append(`
-								<style>
-									.devsite-toc,
-									.devsite-toc-embedded,
-									[class*="toc"] {
-										display: block !important;
-										visibility: visible !important;
-										opacity: 1 !important;
-									}
-								</style>
-							`, { html: true });
-						}
-					});
+				const responseText = await response.text();
 
 				// 4. 设置缓存
 				const headers = new Headers(response.headers);
@@ -147,11 +81,11 @@ export default {
 				headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
 				headers.set('Access-Control-Allow-Headers', '*');
 
-				// 使用 HTMLRewriter 转换响应
-				response = rewriter.transform(new Response(response.body, {
+				// 创建新的响应
+				response = new Response(responseText, {
 					status: response.status,
 					headers
-				}));
+				});
 
 				ctx.waitUntil(cache.put(cacheKey, response.clone()));
 			} catch (error) {
