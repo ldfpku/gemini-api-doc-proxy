@@ -125,10 +125,12 @@ URL 结构：
     npm run deploy
     ```
 
-## VPN设置
+## TOC（目录）相关说明
 
-```cmd
-set HTTPS_PROXY=http://127.0.0.1:10808
-set HTTP_PROXY=http://127.0.0.1:10808
-npx wrangler dev
-```
+由于 Google Gemini API 文档的目录（TOC，右侧"本页内容"）是通过前端 JavaScript 动态渲染生成的，Cloudflare Worker 通过 fetch 获取到的 HTML 内容中并不包含 TOC 元素。只有在浏览器端 JS 执行后，TOC 才会被插入到页面中。
+
+因此：
+
+- Worker 端无法直接提取或代理 TOC 内容。
+- 如果需要目录功能，建议在前端通过 JS 动态提取或渲染。
+- 目前 Worker 仅代理原始 HTML 内容，不对 TOC 做特殊处理。
